@@ -28,9 +28,8 @@ pub trait GenericSocketWrapper : Send + Clone {
 }
 
 /// Wrapper around UDP socket with converting to/from Package.
-#[derive(Clone)]
 pub struct UdpSocketWrapper {
-    socket: udp::UdpSocket,
+    socket: net::UdpSocket,
 }
 
 

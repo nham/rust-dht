@@ -11,12 +11,13 @@
 //! [BEP 0005](http://www.bittorrent.org/beps/bep_0005.html).
 
 use std::{collections,iter,fmt};
-use std::old_path::BytesContainer;
 
 use bencode::{self, Bencode, FromBencode, ToBencode};
 use bencode::util::ByteString;
 use std::num::FromPrimitive;
 use std::num::ToPrimitive;
+use std::str;
+use std::error::Error;
 use num;
 
 use super::super::base;
@@ -216,21 +217,21 @@ impl FromBencode for Package {
             _ => debug_and_return!("Expected dict as top-level package, got {:?}", b)
         };
 
-        let typ = bytes_or_none!(dict, TYPE, "No type");
+        let typ: &Vec<u8> = bytes_or_none!(dict, TYPE, "No type");
         let payload_data = match dict.get(&ByteString::from_vec(typ.clone())) {
             Some(val) => val,
             None => debug_and_return!("No payload")
         };
 
-        let (payload, sender) = match typ.container_as_str() {
-            Some(ERROR) => match *payload_data {
+        let (payload, sender) = match str::from_utf8(typ) {
+            Ok(ERROR) => match *payload_data {
                 Bencode::List(ref v) => match v.as_slice() {
                     [Bencode::Number(code), Bencode::ByteString(ref msg)] => {
-                        let str_msg = match msg.container_as_str() {
-                            Some(s) => s,
-                            None => {
+                        let str_msg = match str::from_utf8(msg) {
+                            Ok(s) => s,
+                            Err(e) => {
                                 debug!("Error message is not UTF8: {:?}", msg);
-                                "Unknown error"
+                                e.description()
                             }
                         };
                         (Payload::Error(code, str_msg.to_string()), None)
@@ -241,21 +242,21 @@ impl FromBencode for Package {
                 _ => debug_and_return!("Error body of unexpected type: {:?}",
                                        payload_data)
             },
-            Some(QUERY) => match *payload_data {
+            Ok(QUERY) => match *payload_data {
                 Bencode::Dict(ref d) =>
                     extract_sender!(d, Payload::Query, "No sender ID in query"),
                 _ => debug_and_return!("Query body of unexpected type: {:?}",
                                        payload_data)
             },
-            Some(RESPONSE) => match *payload_data {
+            Ok(RESPONSE) => match *payload_data {
                 Bencode::Dict(ref d) =>
                     extract_sender!(d, Payload::Response, "No sender ID in response"),
                 _ => debug_and_return!("Response body of unexpected type: {:?}",
                                        payload_data)
             },
-            Some(unknown) => debug_and_return!("Unexpected payload type {:?}",
+            Ok(unknown) => debug_and_return!("Unexpected payload type {:?}",
                                                unknown),
-            None => debug_and_return!("Not a UTF8 string: field y, value {:?}",
+            Err(_) => debug_and_return!("Not a UTF8 string: field y, value {:?}",
                                       typ)
         };
 
