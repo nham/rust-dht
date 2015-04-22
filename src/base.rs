@@ -63,22 +63,22 @@ impl serialize::Decodable for Node {
         d.read_struct("Node", 2, |d| {
             let addr = try!(d.read_struct_field("address", 0, |d2| {
                 let s = try!(d2.read_str());
-                match FromStr::from_str(s.as_slice()) {
+                match FromStr::from_str(&s[..]) {
                     Ok(addr) => Ok(addr),
                     Err(e) => {
                         let err = format!("Expected socket address, got {}, error {:?}", s, e);
-                        Err(d2.error(err.as_slice()))
+                        Err(d2.error(&err[..]))
                     }
                 }
             }));
 
             let id = try!(d.read_struct_field("id", 1, |d2| {
                 let s = try!(d2.read_str());
-                match FromStr::from_str(s.as_slice()) {
+                match FromStr::from_str(&s[..]) {
                     Ok(id) => Ok(id),
                     Err(e) => {
                         let err = format!("Expected ID, got {}, error {:?}", s, e);
-                        Err(d2.error(err.as_slice()))
+                        Err(d2.error(&err[..]))
                     }
                 }
             }));
@@ -109,9 +109,9 @@ mod test {
     fn test_node_encode() {
         let n = test::new_node(42);
         let j = json::encode(&n);
-        let m: SimplifiedNode = json::decode(j.unwrap().as_slice()).unwrap();
-        assert_eq!(test::ADDR, m.address.as_slice());
-        assert_eq!("42", m.id.as_slice());
+        let m: SimplifiedNode = json::decode(j.unwrap()[..]).unwrap();
+        assert_eq!(test::ADDR, m.address[..]);
+        assert_eq!("42", m.id[..]);
     }
 
     #[test]

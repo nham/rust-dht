@@ -5,11 +5,11 @@ use std::net::{self, IpAddr};
 
 /// Convert socket address to bytes in network order.
 pub fn netaddr_to_netbytes(addr: &net::SocketAddr) -> Vec<u8> {
-    match addr.ip {
+    match addr.ip() {
         IpAddr::V4(a) => {
             let o = a.octets();
-            let x = (addr.port >> 8) as u8;
-            let y = (addr.port & 0xFF) as u8;
+            let x = (addr.port() >> 8) as u8;
+            let y = (addr.port() & 0xFF) as u8;
             vec![o[0], o[1], o[2], o[3], x, y]
         },
         // TODO(divius): implement
