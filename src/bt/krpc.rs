@@ -64,7 +64,7 @@ fn handle_incoming<TNodeTable: base::GenericNodeTable,
                 // TODO(divius): implement
                 debug!("Received {:?} from {:?}", package, addr),
             Err(e) =>
-                if e.kind != io::ErrorKind::TimedOut {
+                if e.kind() != io::ErrorKind::TimedOut {
                     debug!("Error during receiving {}", e);
                 }
         }

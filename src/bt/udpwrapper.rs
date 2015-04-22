@@ -11,7 +11,6 @@
 
 use std::io;
 use std::net;
-use std::net::{ip, udp};
 
 use bencode::{self, FromBencode, ToBencode};
 
@@ -38,7 +37,7 @@ pub struct UdpSocketWrapper {
 impl UdpSocketWrapper {
     /// New wrapper listening on the current node's address.
     pub fn new(this_node: &base::Node) -> io::Result<UdpSocketWrapper> {
-        let socket = try!(udp::UdpSocket::bind(this_node.address.clone()));
+        let socket = try!(net::UdpSocket::bind(this_node.address.clone()));
         Ok(UdpSocketWrapper {
             socket: socket
         })
@@ -64,19 +63,14 @@ impl GenericSocketWrapper for UdpSocketWrapper {
         self.socket.set_read_timeout(Some(READ_TIMEOUT));
         let (amt, src) = try!(self.socket.recv_from(&mut *buf));
         let benc = try!(bencode::from_buffer(&buf[0..amt]).map_err(|e| {
-            io::Error {
-                kind: io::ErrorKind::InvalidInput,
-                desc: "Cannot read bencoded buffer",
-                detail: Some(format!("Cannot read bencoded buffer: {}", e.msg))
-            }
+            io::Error::new(io::ErrorKind::InvalidInput,
+                           format!("Cannot read bencoded buffer: {}", e.msg)
+                          )
         }));
 
         let pkg = try!(FromBencode::from_bencode(&benc).ok_or_else(|| {
-            io::Error {
-                kind: io::ErrorKind::InvalidInput,
-                desc: "Cannot decode bencoded buffer",
-                detail: None
-            }
+            io::Error::new(io::ErrorKind::InvalidInput,
+                           "Cannot decode bencoded buffer")
         }));
         Ok((pkg, src))
     }
