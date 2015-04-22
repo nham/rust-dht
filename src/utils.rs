@@ -1,31 +1,37 @@
 //! Various utilities
 
-use std::net::ip;
+use std::net::{self, IpAddr};
 
 
 /// Convert socket address to bytes in network order.
-pub fn netaddr_to_netbytes(addr: &ip::SocketAddr) -> Vec<u8> {
+pub fn netaddr_to_netbytes(addr: &net::SocketAddr) -> Vec<u8> {
     match addr.ip {
-        ip::Ipv4Addr(a, b, c, d) =>
-            vec![a, b, c, d, (addr.port >> 8) as u8, (addr.port & 0xFF) as u8],
+        IpAddr::V4(a) => {
+            let o = a.octets();
+            let x = (addr.port >> 8) as u8;
+            let y = (addr.port & 0xFF) as u8;
+            vec![o[0], o[1], o[2], o[3], x, y]
+        },
         // TODO(divius): implement
-        ip::Ipv6Addr(..) => panic!("IPv6 not implemented")
+        IpAddr::V6(_) => panic!("IPv6 not implemented")
     }
 }
 
 /// Get socket address from netbytes.
-pub fn netaddr_from_netbytes(bytes: &[u8]) -> ip::SocketAddr {
+pub fn netaddr_from_netbytes(bytes: &[u8]) -> net::SocketAddr {
     assert_eq!(6, bytes.len());
-    ip::SocketAddr {
-        ip: ip::Ipv4Addr(bytes[0], bytes[1], bytes[2], bytes[3]),
-        port: ((bytes[4] as u16) << 8) + bytes[5] as u16
-    }
+    net::SocketAddr::V4(
+        net::SocketAddrV4::new(
+            net::Ipv4Addr::new(bytes[0], bytes[1], bytes[2], bytes[3]),
+            ((bytes[4] as u16) << 8) + bytes[5] as u16
+        )
+    )
 }
 
 
 #[cfg(test)]
 pub mod test {
-    use std::old_io::net::ip;
+    use std::net;
     use std::num::FromPrimitive;
 
     use num;
@@ -42,8 +48,8 @@ pub mod test {
     pub fn new_node_with_port(id: usize, port: u16) -> Node {
         Node {
             id: FromPrimitive::from_uint(id).unwrap(),
-            address: ip::SocketAddr {
-                ip: ip::Ipv4Addr(127, 0, 0, 1),
+            address: net::SocketAddr {
+                ip: net::Ipv4Addr(127, 0, 0, 1),
                 port: port
             }
         }
