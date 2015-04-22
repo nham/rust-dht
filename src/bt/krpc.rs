@@ -10,7 +10,7 @@
 //! KRPC DHT service as described in
 //! [BEP 0005](http://www.bittorrent.org/beps/bep_0005.html).
 
-use std::old_io::{IoErrorKind, IoResult};
+use std::io;
 use std::sync;
 use std::thread;
 
@@ -64,7 +64,7 @@ fn handle_incoming<TNodeTable: base::GenericNodeTable,
                 // TODO(divius): implement
                 debug!("Received {:?} from {:?}", package, addr),
             Err(e) =>
-                if e.kind != IoErrorKind::TimedOut {
+                if e.kind != io::ErrorKind::TimedOut {
                     debug!("Error during receiving {}", e);
                 }
         }
@@ -73,7 +73,7 @@ fn handle_incoming<TNodeTable: base::GenericNodeTable,
 
 impl KRpcService<knodetable::KNodeTable, udpwrapper::UdpSocketWrapper> {
     /// New service with default node table.
-    pub fn new_default(this_node: base::Node) -> IoResult<DefaultKRpcService> {
+    pub fn new_default(this_node: base::Node) -> io::Result<DefaultKRpcService> {
         let node_table = knodetable::KNodeTable::new(this_node.id.clone());
         let socket = try!(udpwrapper::UdpSocketWrapper::new(&this_node));
         KRpcService::new(this_node, node_table, socket)
@@ -85,7 +85,7 @@ impl<TNodeTable: base::GenericNodeTable,
 KRpcService<TNodeTable, TSocket> {
     /// New service with given node table and socket.
     pub fn new(this_node: base::Node, node_table: TNodeTable, socket: TSocket)
-            -> IoResult<KRpcService<TNodeTable, TSocket>> {
+            -> io::Result<KRpcService<TNodeTable, TSocket>> {
         let self_ = KRpcService {
             this_node: this_node,
             node_table: sync::Arc::new(sync::RwLock::new(node_table)),
@@ -123,8 +123,8 @@ Drop for KRpcService<TNodeTable, TSocket> {
 
 #[cfg(test)]
 mod test {
-    use std::old_io::IoResult;
-    use std::old_io::net::ip;
+    use std::io;
+    use std::net::ip;
 
     use std::num::ToPrimitive;
     use num;
@@ -172,13 +172,13 @@ mod test {
 
     impl GenericSocketWrapper for DummySocketWrapper {
         fn send(&mut self, package: &protocol::Package, node: &base::Node)
-            -> IoResult<()> {
+            -> io::Result<()> {
             self.last_package = Some(package.clone());
             self.last_node = Some(node.clone());
             Ok(())
         }
 
-        fn receive(&mut self) -> IoResult<(protocol::Package, ip::SocketAddr)> {
+        fn receive(&mut self) -> io::Result<(protocol::Package, ip::SocketAddr)> {
             Ok((self.last_package.as_ref().unwrap().clone(),
                 self.last_node.as_ref().unwrap().address.clone()))
         }

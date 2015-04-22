@@ -22,6 +22,7 @@
 #![feature(core)]
 #![feature(io)]
 #![feature(path)]
+#![feature(slice_patterns)]
 
 #![feature(unsafe_destructor)]
 

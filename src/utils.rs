@@ -1,6 +1,6 @@
 //! Various utilities
 
-use std::old_io::net::ip;
+use std::net::ip;
 
 
 /// Convert socket address to bytes in network order.

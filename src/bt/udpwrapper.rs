@@ -9,9 +9,9 @@
 
 //! UDP socket wrapper.
 
-use std::old_io::{self, IoResult};
-use std::old_io::net::ip;
-use std::old_io::net::udp;
+use std::io;
+use std::net;
+use std::net::{ip, udp};
 
 use bencode::{self, FromBencode, ToBencode};
 
@@ -23,9 +23,9 @@ use super::protocol;
 pub trait GenericSocketWrapper : Send + Clone {
     /// Send package to the node.
     fn send(&mut self, package: &protocol::Package, node: &base::Node)
-        -> IoResult<()>;
+        -> io::Result<()>;
     /// Receive package.
-    fn receive(&mut self) -> IoResult<(protocol::Package, ip::SocketAddr)>;
+    fn receive(&mut self) -> io::Result<(protocol::Package, net::SocketAddr)>;
 }
 
 /// Wrapper around UDP socket with converting to/from Package.
@@ -37,7 +37,7 @@ pub struct UdpSocketWrapper {
 
 impl UdpSocketWrapper {
     /// New wrapper listening on the current node's address.
-    pub fn new(this_node: &base::Node) -> IoResult<UdpSocketWrapper> {
+    pub fn new(this_node: &base::Node) -> io::Result<UdpSocketWrapper> {
         let socket = try!(udp::UdpSocket::bind(this_node.address.clone()));
         Ok(UdpSocketWrapper {
             socket: socket
@@ -51,29 +51,29 @@ const READ_TIMEOUT: u64 = 1000;
 impl GenericSocketWrapper for UdpSocketWrapper {
     /// Send package to the node.
     fn send(&mut self, package: &protocol::Package, node: &base::Node)
-            -> IoResult<()> {
+            -> io::Result<()> {
         let pkg = try!(package.to_bencode().to_bytes());
         try!(self.socket.send_to(pkg.as_slice(), node.address.clone()));
         Ok(())
     }
 
     /// Receive package.
-    fn receive(&mut self) -> IoResult<(protocol::Package, ip::SocketAddr)> {
+    fn receive(&mut self) -> io::Result<(protocol::Package, net::SocketAddr)> {
         let mut buf = Box::new([0; BUFFER_SIZE]);
 
         self.socket.set_read_timeout(Some(READ_TIMEOUT));
         let (amt, src) = try!(self.socket.recv_from(&mut *buf));
         let benc = try!(bencode::from_buffer(&buf[0..amt]).map_err(|e| {
-            old_io::IoError {
-                kind: old_io::InvalidInput,
+            io::Error {
+                kind: io::ErrorKind::InvalidInput,
                 desc: "Cannot read bencoded buffer",
                 detail: Some(format!("Cannot read bencoded buffer: {}", e.msg))
             }
         }));
 
         let pkg = try!(FromBencode::from_bencode(&benc).ok_or_else(|| {
-            old_io::IoError {
-                kind: old_io::InvalidInput,
+            io::Error {
+                kind: io::ErrorKind::InvalidInput,
                 desc: "Cannot decode bencoded buffer",
                 detail: None
             }

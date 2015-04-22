@@ -8,7 +8,7 @@
 //
 
 use std::str::FromStr;
-use std::old_io::net::ip;
+use std::net;
 
 use num;
 use rustc_serialize as serialize;
@@ -35,7 +35,7 @@ pub trait GenericNodeTable : Send + Sync {
 #[derive(Clone, Debug)]
 pub struct Node {
     /// Network address of the node.
-    pub address: ip::SocketAddr,
+    pub address: net::SocketAddr,
     /// ID of the node.
     pub id: num::BigUint
 }
